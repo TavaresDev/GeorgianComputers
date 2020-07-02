@@ -12,6 +12,7 @@ using georgianComputers.Data;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using georgianComputers.Models;
 
 namespace georgianComputers
 {
@@ -27,11 +28,22 @@ namespace georgianComputers
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<ApplicationDbContext>(options =>
+            services.AddDbContext<GeorgianComputersContext>(options =>
                 options.UseSqlServer(
                     Configuration.GetConnectionString("DefaultConnection")));
-            services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
-                .AddEntityFrameworkStores<ApplicationDbContext>();
+            //configure identity to work with out dbase
+            //Use our new applicationROle class to manange Roles and permissions
+            //Point identity to the existing GeorgianComputers DBase context Class
+            //use default cookie settings
+            services.AddIdentity<ApplicationUser, ApplicationRole>()
+                .AddDefaultUI()
+                .AddRoles<ApplicationRole>()
+                .AddRoleManager<RoleManager<ApplicationRole>>()
+                .AddEntityFrameworkStores<GeorgianComputersContext>()
+                .AddDefaultTokenProviders();
+
+            //services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+            //    .AddEntityFrameworkStores<GeorgianComputersContext>();
             services.AddControllersWithViews();
             services.AddRazorPages();
         }
