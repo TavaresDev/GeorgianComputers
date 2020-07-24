@@ -40,7 +40,7 @@ namespace georgianComputers.Models
 
             modelBuilder.Entity<Cart>(entity =>
             {
-                entity.Property(e => e.CartId).IsUnicode(false);
+               // entity.Property(e => e.CartId).IsUnicode(false);
 
                 entity.Property(e => e.Quantity).HasDefaultValueSql("((1))");
 
