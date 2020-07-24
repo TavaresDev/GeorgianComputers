@@ -46,6 +46,9 @@ namespace georgianComputers
             //    .AddEntityFrameworkStores<GeorgianComputersContext>();
             services.AddControllersWithViews();
             services.AddRazorPages();
+
+            // add session suport
+            services.AddSession();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -69,6 +72,9 @@ namespace georgianComputers
 
             app.UseAuthentication();
             app.UseAuthorization();
+
+            //Enable Session Suport
+            app.UseSession();
 
             app.UseEndpoints(endpoints =>
             {
