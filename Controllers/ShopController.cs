@@ -33,6 +33,40 @@ namespace georgianComputers.Controllers
             return View(products);
         }
 
+        //GET: /ProductDetails/prodName
+        public IActionResult ProductDetails(String product)
+        {
+            //Use a singleOrDefault to find either 1 exact match or a null object
+            var selectedProduct = _context.Product.SingleOrDefault(p => p.Name == product);
+            return View(selectedProduct);
+        }
+
+        //POST: AddToCart
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult AddToCart(int Quantity, int ProductId)
+        {
+            //identify product Price
+            var product = _context.Product.SingleOrDefault(p => p.ProductId == ProductId);
+            var price = product.Price;
+            //create and save a new cart object
+            var cart = new Cart
+            {
+                ProductId = ProductId,
+                Quantity = Quantity,
+                Price = price,
+                Username = "tempUser"
+            };
+
+            _context.Cart.Add(cart);
+            _context.SaveChanges();
+            //show the cart page
+            return RedirectToAction("Cart");
+
+
+           
+        }
+
 
     }
 }
