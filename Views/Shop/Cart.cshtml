@@ -21,7 +21,10 @@
                 @Html.DisplayNameFor(model => model.Price)
             </th>
 
-            <th></th>
+            <th>
+
+            </th>
+    
         </tr>
     </thead>
     <tbody>
@@ -47,7 +50,16 @@
         }
 
         <tr>
-            <td colspan="2" ></td>
+            <td colspan="4">
+           
+            </td>
+        
+        </tr>
+
+        <tr>
+            <td colspan="2">
+                Total:
+            </td>
             <td class="text-right">@String.Format("{0:c}", total)</td>
             <td>
                 <a asp-controller="Shop" asp-action="Index" class="btn btn-primary"> < Keep Shopping </a>
