@@ -40,6 +40,7 @@ namespace georgianComputers.Controllers
         public IActionResult ProductDetails(String product)
         {
             //Use a singleOrDefault to find either 1 exact match or a null object
+            // if there is 2 products with same name, it breaks change to  FirstOrDefault()
             var selectedProduct = _context.Product.SingleOrDefault(p => p.Name == product);
             return View(selectedProduct);
         }
@@ -54,7 +55,6 @@ namespace georgianComputers.Controllers
             var price = product.Price;
             //Determine Username
             var cartUsername = GetCartUserName();
-
 
             //create and save a new cart object
             var cart = new Cart

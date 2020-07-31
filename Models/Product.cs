@@ -21,7 +21,7 @@ namespace georgianComputers.Models
         [StringLength(8000)]
         public string Description { get; set; }
         [Column(TypeName = "decimal(10, 2)")]
-        [Range(0, 000000, ErrorMessage = "Price must be between 0 and 999,999")]
+        [Range(0, 999999, ErrorMessage = "Price must be between 0 and 999,999")]
         [DisplayFormat(DataFormatString = "{0:c}")]
         public decimal Price { get; set; }
         [StringLength(255)]
