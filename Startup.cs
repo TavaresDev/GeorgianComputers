@@ -49,6 +49,10 @@ namespace georgianComputers
 
             // add session suport
             services.AddSession();
+            //Stripe payment
+            //Make config value from appsettings.json avaiable to the controler
+            services.AddSingleton<IConfiguration>(Configuration);
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -7,17 +7,26 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Stripe;
 
 namespace georgianComputers.Controllers
 {
     public class ShopController : Controller
     {
-        //ADD db conection
+        //ADD db conection. the _context is a convention becaus ethis is been injected
         private readonly GeorgianComputersContext _context;
 
-        public ShopController(GeorgianComputersContext context)
+        // Add config so controller can real config value asssetings.json
+        private IConfiguration _configuration;
+
+        public ShopController(GeorgianComputersContext context, IConfiguration configuration) // dependency injection
         {
-            _context = context; 
+            //accept an intance of our DB connection class and use this object connection
+            _context = context;
+
+            //accept an intance of the configuration object se we can read appsettings.json
+            _configuration = configuration;
         }
         //Get: /Shop
         public IActionResult Index()
@@ -56,16 +65,29 @@ namespace georgianComputers.Controllers
             //Determine Username
             var cartUsername = GetCartUserName();
 
-            //create and save a new cart object
-            var cart = new Cart
-            {
-                ProductId = ProductId,
-                Quantity = Quantity,
-                Price = price,
-                Username = cartUsername
-            };
+            //Check if this user's products already exists in the cart. if so, update the quantity
 
-            _context.Cart.Add(cart);
+            var cartItem = _context.Cart.SingleOrDefault(c => c.ProductId == ProductId && c.Username == cartUsername);
+            if (cartItem == null)
+            {
+
+                //create and save a new cart object
+                var cart = new Cart
+                {
+                    ProductId = ProductId,
+                    Quantity = Quantity,
+                    Price = price,
+                    Username = cartUsername
+                };
+                _context.Cart.Add(cart);
+            }
+            else
+            {
+                cartItem.Quantity += Quantity;
+                _context.Update(cartItem);
+
+            }
+
             _context.SaveChanges();
             //show the cart page
             return RedirectToAction("Cart");
@@ -75,7 +97,7 @@ namespace georgianComputers.Controllers
         private string GetCartUserName()
         {
             //1. check if we are already stores with username in user session
-            if(HttpContext.Session.GetString("CartUserName") == null)
+            if (HttpContext.Session.GetString("CartUserName") == null)
             {
                 //Initialize an empty string variable that will latter add to the session object
                 var cartUsername = "";
@@ -106,7 +128,7 @@ namespace georgianComputers.Controllers
             var cartUserName = GetCartUserName();
 
             //2. Query the DB to get the user cart items
-            var cartItems = _context.Cart.Include(c=> c.Product).Where(c => c.Username == cartUserName).ToList();
+            var cartItems = _context.Cart.Include(c => c.Product).Where(c => c.Username == cartUserName).ToList();
 
             //3. Load a view to pass the cart items for display
             return View(cartItems);
@@ -128,14 +150,14 @@ namespace georgianComputers.Controllers
         public IActionResult Checkout() //Set
         {
             //check if the user has been shoping anonymously now that they are logged in
-            Migratecart();
+            MigrateCart();
             return View();
         }
 
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Checkout([Bind("FirstName, LastName, Address, City, Province, PostalCode, Phone")] Order order) //Get
+        public IActionResult Checkout([Bind("FirstName, LastName, Address, City, Province, PostalCode, Phone")] Models.Order order) //Get
         {
             //autofill the date, userm and total properties insted of asking the user
             order.OrderDate = DateTime.Now;
@@ -147,23 +169,26 @@ namespace georgianComputers.Controllers
 
             order.Total = cartTotal;
             // will need an EXTENCION to the .Net COre Session Object to store the order Object = in the next video
-            HttpContext.Session.SetString("cartTotal", cartTotal.ToString());
+            //HttpContext.Session.SetString("cartTotal", cartTotal.ToString());
+
+            // we have the session to complex object
+            HttpContext.Session.SetObject("Order", order);
 
             return RedirectToAction("Payment");
 
-
         }
 
-        private void Migratecart()
+        //Cart or cart?
+        private void MigrateCart()
         {
             //if user has shoppen without an account, attach theys item to their username
-            if(HttpContext.Session.GetString("CartUsername") != User.Identity.Name)
+            if (HttpContext.Session.GetString("CartUsername") != User.Identity.Name)
             {
                 var cartUsername = HttpContext.Session.GetString("CartUsername");
                 //get the user name
                 var cartItems = _context.Cart.Where(c => c.Username == cartUsername);
                 //loop through the cart items and update the username for each one
-                foreach(var item in cartItems)
+                foreach (var item in cartItems)
                 {
                     item.Username = User.Identity.Name;
                     _context.Update(item);
@@ -173,6 +198,89 @@ namespace georgianComputers.Controllers
                 //update the session variable from a GUID to the user email
                 HttpContext.Session.SetString("CartUsername", User.Identity.Name);
             }
+        }
+
+        [Authorize]
+        public IActionResult Payment()
+        {
+            //setup payment page to show order total
+
+            // 1. Get the order from The session variable & cast as an order Object
+            var order = HttpContext.Session.GetObject<Models.Order>("Order");
+
+            //2. Use viewbag to display total and pass the amount to Strip
+            ViewBag.Total = order.Total;
+            //Strip dont like descimals, so:
+            ViewBag.CentsTotal = order.Total * 100;
+            ViewBag.PublishableKey = _configuration.GetSection("Stripe")["PublishableKey"];
+
+            return View();
+        }
+        // Need to get 2 things from stripe after authorization
+        //overloading method 
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Payment(string stripeEmail, string stripeToken)
+        {
+            //send payment to stripe
+            StripeConfiguration.ApiKey = _configuration.GetSection("Stripe")["SecretKey"];
+            var cartUsername = HttpContext.Session.GetString("CartUsername");
+            var cartItems = _context.Cart.Where(c => c.Username == cartUsername);
+            var order = HttpContext.Session.GetObject<Models.Order>("Order");
+
+
+
+            //new stripe payment attempt
+            var customerService = new CustomerService();
+            var chargeService = new ChargeService();
+            // new customer email from payment form, token auto-generated on payment form also
+            var customer = customerService.Create(new CustomerCreateOptions
+            {
+                Email = stripeEmail,
+                Source = stripeToken
+            });
+            //there is cut in the video at 1:13:35
+            //new charge using customer created above
+            var charge = chargeService.Create(new ChargeCreateOptions
+            {
+                Amount = Convert.ToInt32(order.Total * 100),
+                Description = "Andre Store Purchase",
+                Currency = "cad",
+                Customer = customer.Id
+            });
+
+            //generate and save new order
+            _context.Order.Add(order);
+            _context.SaveChanges();
+
+            //save order datail
+            foreach (var item in cartItems)
+            {
+                var orderDetail = new OrderDetail
+                {
+                    OrderId = order.OrderId,
+                    ProductId = item.ProductId,
+                    Quantity = item.Quantity,
+                    Price = item.Price
+                };
+                _context.OrderDetail.Add(orderDetail);
+
+            }
+            _context.SaveChanges();
+
+            //delete the cart
+            foreach (var item in cartItems)
+            {
+                _context.Cart.Remove(item);
+
+            }
+            _context.SaveChanges();
+
+            //confirm with a receipt for the new OrderId
+
+            return RedirectToAction("Details", "Orders", new { id = order.OrderId });
+
         }
     }
 }
