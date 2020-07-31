@@ -1,15 +1,13 @@
 ﻿@model IEnumerable<georgianComputers.Models.Order>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Past Orders";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Index</h1>
+<h1>Past Orders</h1>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
+
 <table class="table">
     <thead>
         <tr>
@@ -81,8 +79,8 @@
             </td>
             <td>
  
-                <a asp-action="Details" asp-route-id="@item.OrderId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.OrderId">Delete</a>
+                <a asp-action="Details" asp-route-id="@item.OrderId">Details</a> 
+                @*<a asp-action="Delete" asp-route-id="@item.OrderId">Delete</a>*@
             </td>
         </tr>
 }
