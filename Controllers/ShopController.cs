@@ -178,7 +178,7 @@ namespace georgianComputers.Controllers
 
         }
 
-        //Cart or cart?
+      
         private void MigrateCart()
         {
             //if user has shoppen without an account, attach theys item to their username
