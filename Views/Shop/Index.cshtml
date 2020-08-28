@@ -10,8 +10,7 @@
 
 <section>
     <div class="row">
-
-
+ 
         @foreach (var item in Model)
         {
             <div class="col-sm-6 col-lg-4 mb-3">
@@ -23,7 +22,69 @@
             </div>
         }
     </div>
+    <div class="row">
+        <div id="shopCategories">
+
+        </div>
+
+    </div>
+
+    <div class="row">
+        <div id="catProducts"></div>
+    </div>
+
+
+
 </section>
 
+@section Scripts{
+    <script>
+        const shopCatWrapper = document.getElementById("shopCategories");
+        const catProductsWrapper = document.getElementById("catProducts");
+
+
+
+         fetch('/api/Categories')
+        .then(response => {
+            //console.log(response);
+            return response.json();
+        })
+        .then(data => {
+            //console.log(data);
+            shopCatWrapper.innerHTML = " "
+            data["categories"].map(cat => {
+                //console.log(cat.categoryId);
+                //console.log(cat.name);
+                //console.log(cat.product);
+                const catBtn = `
+                        <button class="btn btn-danger form-control" onClick="getCategoryProducts(${cat.categoryId});">${cat.name}</button>
+                `
+                shopCatWrapper.innerHTML += catBtn;
+            });
+        });
+
+        function getCategoryProducts(catId) {
+            fetch('/api/Categories/'+catId)
+            .then(response => {
+                //console.log(response);
+                return response.json();
+            })
+            .then(data => {
+                console.log(data);
+            catProductsWrapper.innerHTML = " "
+            data.map(product => {
+                //console.log(cat.categoryId);
+                //console.log(cat.name);
+                //console.log(cat.product);
+                const productComponent = `
+                        <br/>
+                        <button class="btn btn-primary form-control">${product.name}</button>
+                `
+                catProductsWrapper.innerHTML += productComponent;
+            });
+        });
+        }
+    </script>
+ }
 
 

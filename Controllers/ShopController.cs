@@ -45,6 +45,26 @@ namespace georgianComputers.Controllers
             return View(products);
         }
 
+        //Get: /Shop
+        [Route("api/Categories")]
+        public IActionResult GetCategories()
+        {
+            var categories = _context.Category.OrderBy(c => c.Name).ToList();
+            return Json(new { categories });
+        }
+
+
+        [Route("api/Categories/{catId:int}")]
+        public IActionResult GetProductsByCategory(int catId)
+        {
+            //store the selctes category name in the viewbag so we can display in the view heading
+            ViewBag.Category = catId;
+
+            // get the list of products for the slected category and pass the list to the view
+            var products = _context.Product.Where(p => p.Category.CategoryId == catId).OrderBy(p => p.Name).ToList();
+            return Json(products);
+        }
+
         //GET: /ProductDetails/prodName
         public IActionResult ProductDetails(String product)
         {
